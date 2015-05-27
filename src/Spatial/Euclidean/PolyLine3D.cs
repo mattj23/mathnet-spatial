@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MathNet.Spatial.Euclidean
 {
@@ -39,7 +40,7 @@ namespace MathNet.Spatial.Euclidean
 
         // Constructors 
         public PolyLine3D()
-            : this(new Point3D[] { })
+            : this(Enumerable.Empty<Point3D>())
         {
         }
 
