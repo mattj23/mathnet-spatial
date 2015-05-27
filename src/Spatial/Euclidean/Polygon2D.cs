@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using MathNet.Spatial.Units;
 
 namespace MathNet.Spatial.Euclidean
 {
@@ -37,6 +38,39 @@ namespace MathNet.Spatial.Euclidean
             set { this._points[key] = value; }
         }
 
+        /// <summary>
+        /// Test whether a point is enclosed within a polygon. Points on the polygon edges are not
+        /// counted as contained within the polygon.
+        /// </summary>
+        /// <param name="p"></param>
+        /// <returns></returns>
+        public bool EnclosesPoint(Point2D p)
+        {
+            return Polygon2D.IsPointInPolygon(p, this);
+        }
+
+        /// <summary>
+        /// Compute whether or not two polygons are colliding based on whether or not the vertices of
+        /// either are enclosed within the shape of the other. This is a simple means of detecting collisions
+        /// that can fail if the two polygons are heavily overlapped in such a way that one protrudes through
+        /// the other and out its opposing side without any vertices being enclosed.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static bool ArePolygonVerticesColliding(Polygon2D a, Polygon2D b)
+        {
+            return a.Any(b.EnclosesPoint) || b.Any(a.EnclosesPoint);
+        }
+
+        /// <summary>
+        /// Determine whether or not a point is inside a polygon using the intersection counting 
+        /// method.  Return true if the point is contained, false if it is not. Points which lie
+        /// on the edge are not counted as inside the polygon.
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="poly"></param>
+        /// <returns></returns>
         public static bool IsPointInPolygon(Point2D p, Polygon2D poly)
         {
             // Algorithm from http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
@@ -50,7 +84,13 @@ namespace MathNet.Spatial.Euclidean
             }
             return c;
         }
-
+        
+        /// <summary>
+        /// Using the recursive QuickHull algorithm, take an IEnumerable of Point2Ds and compute the 
+        /// two dimensional convex hull, returning it as a Polygon2D object.  
+        /// </summary>
+        /// <param name="pointList"></param>
+        /// <returns></returns>
         public static Polygon2D GetConvexHullFromPoints(IEnumerable<Point2D> pointList)
         {
             // Use the Quickhull algorithm to compute the convex hull of the given points, 
@@ -94,12 +134,16 @@ namespace MathNet.Spatial.Euclidean
 
             var hullPoints = new List<Point2D>{leftMost, rightMost};
 
-            while (upperPoints.Any())
-            {
-                // Locate the furthest point 
-            }
+            RecursiveHullComputation(leftMost, rightMost, upperPoints, hullPoints);
+            RecursiveHullComputation(leftMost, rightMost, lowerPoints, hullPoints);
 
+            // Order the hull points by angle to the centroid
+            Point2D centroid = Point2D.Centroid(hullPoints);
+            Vector2D xAxis = new Vector2D(1, 0);
+            var results = (from x in hullPoints select new Tuple<Angle, Point2D>(centroid.VectorTo(x).AngleTo(xAxis), x)).ToList();
+            results.Sort((a, b) => a.Item1.CompareTo(b.Item1));
 
+            return new Polygon2D(from x in results select x.Item2);
         }
 
         /// <summary>
@@ -109,7 +153,7 @@ namespace MathNet.Spatial.Euclidean
         /// <param name="b"></param>
         /// <param name="workingList"></param>
         /// <param name="hullList"></param>
-        private void RecursiveHullComputation(Point2D a, Point2D b, List<Point2D> workingList, List<Point2D> hullList)
+        private static void RecursiveHullComputation(Point2D a, Point2D b, List<Point2D> workingList, List<Point2D> hullList)
         {
             if (!workingList.Any())
                 return;
@@ -122,7 +166,7 @@ namespace MathNet.Spatial.Euclidean
 
             // Find the furthest point from the line
             var chord = a.VectorTo(b);
-            Vector2D maxPoint = new Vector2D();
+            Point2D maxPoint = new Point2D();
             double maxDistance = double.MinValue;
 
             foreach (var point2D in workingList)
@@ -133,10 +177,25 @@ namespace MathNet.Spatial.Euclidean
                 if (rejection.Length > maxDistance)
                 {
                     maxDistance = rejection.Length;
-                    maxPoint = a + point2D;
+                    maxPoint = point2D;
                 }
-
             }
+
+            // Add the point to the hull and remove it from the working list
+            hullList.Add(maxPoint);
+            workingList.Remove(maxPoint);
+
+            // Remove all points from the workinglist inside the new triangle
+            Polygon2D exclusionTriangle = new Polygon2D(new Point2D[] {a, b, maxPoint});
+            var removeList = workingList.Where(x => exclusionTriangle.EnclosesPoint(x)).ToList();
+            foreach (var point2D in removeList)
+            {
+                workingList.Remove(point2D);
+            }
+
+            // Recurse to the next level
+            RecursiveHullComputation(a, maxPoint, workingList, hullList);
+            RecursiveHullComputation(maxPoint, b, workingList, hullList);
         }
 
         public IEnumerator<Point2D> GetEnumerator()
