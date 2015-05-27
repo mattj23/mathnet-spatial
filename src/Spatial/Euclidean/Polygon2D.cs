@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -121,10 +122,20 @@ namespace MathNet.Spatial.Euclidean
 
             // Find the furthest point from the line
             var chord = a.VectorTo(b);
+            Vector2D maxPoint = new Vector2D();
+            double maxDistance = double.MinValue;
+
             foreach (var point2D in workingList)
             {
                 var testVector = a.VectorTo(point2D);
-                
+                var projection = testVector.ProjectOn(chord);
+                var rejection = testVector - projection;
+                if (rejection.Length > maxDistance)
+                {
+                    maxDistance = rejection.Length;
+                    maxPoint = a + point2D;
+                }
+
             }
         }
 
