@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using MathNet.Spatial.Units;
 
 namespace MathNet.Spatial.Euclidean
@@ -19,9 +20,10 @@ namespace MathNet.Spatial.Euclidean
         }
 
         // Constructors
-        public Polygon2D() : this(Enumerable.Empty<Point2D>())
+        public Polygon2D()
+            : this(Enumerable.Empty<Point2D>())
         {
-            
+
         }
 
         public Polygon2D(IEnumerable<Point2D> points)
@@ -79,12 +81,12 @@ namespace MathNet.Spatial.Euclidean
             for (int i = 0, j = poly.Count - 1; i < poly.Count; j = i++)
             {
                 if (((poly[i].Y > p.Y) != (poly[j].Y > p.Y)) &&
-                    (p.X < (poly[j].X - poly[i].X)*(p.Y - poly[i].Y)/(poly[j].Y - poly[i].Y) + poly[i].X))
+                    (p.X < (poly[j].X - poly[i].X) * (p.Y - poly[i].Y) / (poly[j].Y - poly[i].Y) + poly[i].X))
                     c = !c;
             }
             return c;
         }
-        
+
         /// <summary>
         /// Using the recursive QuickHull algorithm, take an IEnumerable of Point2Ds and compute the 
         /// two dimensional convex hull, returning it as a Polygon2D object.  
@@ -132,7 +134,7 @@ namespace MathNet.Spatial.Euclidean
                     lowerPoints.Add(point2D);
             }
 
-            var hullPoints = new List<Point2D>{leftMost, rightMost};
+            var hullPoints = new List<Point2D> { leftMost, rightMost };
 
             RecursiveHullComputation(leftMost, rightMost, upperPoints, hullPoints);
             RecursiveHullComputation(leftMost, rightMost, lowerPoints, hullPoints);
@@ -186,7 +188,7 @@ namespace MathNet.Spatial.Euclidean
             workingList.Remove(maxPoint);
 
             // Remove all points from the workinglist inside the new triangle
-            Polygon2D exclusionTriangle = new Polygon2D(new Point2D[] {a, b, maxPoint});
+            Polygon2D exclusionTriangle = new Polygon2D(new Point2D[] { a, b, maxPoint });
             var removeList = workingList.Where(x => exclusionTriangle.EnclosesPoint(x)).ToList();
             foreach (var point2D in removeList)
             {
@@ -196,6 +198,43 @@ namespace MathNet.Spatial.Euclidean
             // Recurse to the next level
             RecursiveHullComputation(a, maxPoint, workingList, hullList);
             RecursiveHullComputation(maxPoint, b, workingList, hullList);
+        }
+
+        public Polygon2D Rotate(Angle angle)
+        {
+            IEnumerable<Point2D> newPoints = from p in this select new Point2D(0, 0) + p.ToVector2D().Rotate(angle);
+            return new Polygon2D(newPoints);
+        }
+
+        /// <summary>
+        /// Rotate the polygon around the specified point
+        /// </summary>
+        /// <param name="angle"></param>
+        /// <param name="center"></param>
+        /// <returns></returns>
+        public Polygon2D RotateAround(Angle angle, Point2D center)
+        {
+            // Shift to the origin
+            var shiftVector = center.VectorTo(Point2D.Origin);
+            var tempPoly = shiftVector + this;
+
+            // Rotate
+            var rotatedPoly = tempPoly.Rotate(angle);
+
+            // Shift back
+            return -shiftVector + rotatedPoly;
+        }
+
+        // Operators
+        public static Polygon2D operator +(Vector2D shift, Polygon2D poly)
+        {
+            IEnumerable<Point2D> newPoints = from p in poly select p + shift;
+            return new Polygon2D(newPoints);
+        }
+
+        public static Polygon2D operator +(Polygon2D poly, Vector2D shift)
+        {
+            return shift + poly;
         }
 
         public IEnumerator<Point2D> GetEnumerator()
