@@ -104,5 +104,18 @@ namespace MathNet.Spatial.UnitTests.Euclidean
             CollectionAssert.AreEquivalent(expectedPoints, hull);
         }
 
+        [TestCase("0,0;0.4,0;0.5,0;0.6,0;1,0;1,.25;1,.75;1,1;0,1;0,0.5", "1,0;1,1;0,1;0,0")]
+        public void ReduceComplexity(string points, string reduced)
+        {
+            var testPoints = from x in points.Split(';') select Point2D.Parse(x);
+            var expectedPoints = from x in reduced.Split(';') select Point2D.Parse(x);
+            var poly = new Polygon2D(testPoints);
+            var expected = new Polygon2D(expectedPoints);
+            var thinned = poly.ReduceComplexity(0.00001);
+
+            CollectionAssert.AreEqual(expected, thinned);
+
+        }
+
     }
 }

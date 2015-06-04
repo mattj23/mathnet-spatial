@@ -87,6 +87,11 @@ namespace MathNet.Spatial.Euclidean
             return c;
         }
 
+        public Polygon2D ReduceComplexity(double singleStepTolerance)
+        {
+            return new Polygon2D(PolyLine2D.ReduceComplexity(this.ToPolyLine2D(), singleStepTolerance));
+        }
+
         /// <summary>
         /// Using the recursive QuickHull algorithm, take an IEnumerable of Point2Ds and compute the 
         /// two dimensional convex hull, returning it as a Polygon2D object.  
@@ -223,6 +228,13 @@ namespace MathNet.Spatial.Euclidean
 
             // Shift back
             return -shiftVector + rotatedPoly;
+        }
+
+        public PolyLine2D ToPolyLine2D()
+        {
+            var points = this._points.ToList();
+            points.Add(points.First());
+            return new PolyLine2D(points);
         }
 
         // Operators

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Security.Cryptography.X509Certificates;
 
 namespace MathNet.Spatial.Euclidean
 {
@@ -87,9 +88,20 @@ namespace MathNet.Spatial.Euclidean
         /// <returns></returns>
         public Line2D LineTo(Point2D p, bool mustStartBetweenAndEnd)
         {
+            return new Line2D(this.ClosestPointTo(p, mustStartBetweenAndEnd), p);
+        }
+
+        /// <summary>
+        /// Returns the closest point on the line to the given point.
+        /// </summary>
+        /// <param name="p">The point that the returned point is the closest point on the line to</param>
+        /// <param name="mustBeOnSegment">If true the returned point is contained by the segment ends, otherwise it can be anywhere on the projected line</param>
+        /// <returns></returns>
+        public Point2D ClosestPointTo(Point2D p, bool mustBeOnSegment)
+        {
             Vector2D v = this.StartPoint.VectorTo(p);
             double dotProduct = v.DotProduct(this.Direction);
-            if (mustStartBetweenAndEnd)
+            if (mustBeOnSegment)
             {
                 if (dotProduct < 0)
                     dotProduct = 0;
@@ -99,8 +111,8 @@ namespace MathNet.Spatial.Euclidean
                     dotProduct = l;
             }
 
-            Vector2D alongVector = dotProduct*this.Direction;
-            return new Line2D(this.StartPoint + alongVector, p);
+            Vector2D alongVector = dotProduct * this.Direction;
+            return this.StartPoint + alongVector;
         }
 
         # region Operators 

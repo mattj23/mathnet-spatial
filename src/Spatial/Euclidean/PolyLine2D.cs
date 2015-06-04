@@ -51,24 +51,107 @@ namespace MathNet.Spatial.Euclidean
             return length;
         }
 
-        // Static methods
-        public static Polygon2D GetConvexHull(PolyLine2D polyline)
+        /// <summary>
+        /// Reduce the complexity of a manifold of points represented as an IEnumerable of Point2D objects.
+        /// This algorithm goes through each point in the manifold and computes the error that would be introduced
+        /// from the original if that point were removed.  Then it removes nonadjacent points to produce a 
+        /// reduced size manifold.
+        /// </summary>
+        /// <param name="points"></param>
+        /// <param name="tolerance"></param>
+        /// <returns></returns>
+        private static IEnumerable<Point2D> ReduceComplexitySingleStep(IEnumerable<Point2D> points, double tolerance)
         {
-            var sortPoints = new List<Point2D>(polyline);
-            sortPoints.Sort((a, b) => a.X == b.X ? a.Y.CompareTo(b.Y) : (a.X > b.X ? 1: -1));
+            var manifold = points.ToList();
+            var errorByIndex = new double[manifold.Count];
 
-            List<Point2D> hhull = new List<Point2D>();
-            int lower = 0;
-            int upper = 0;
-
-            for (int i = sortPoints.Count - 1; i >= 0; --i)
+            // At this point we will loop through the list of points (excluding the first and the last) and 
+            // examine every adjacent triplet.  The middle point is tested against the segment created by
+            // the two end points, and the error that would result in its deletion is computed as the length
+            // of the point's projection onto the segment.
+            for (int i = 1; i < manifold.Count - 1; i++)
             {
-                ;
+                // TODO: simplify this to remove all of the value copying
+                var v0 = manifold[i - 1];
+                var v1 = manifold[i];
+                var v2 = manifold[i + 1];
+                var projected = new Line2D(v0, v2).ClosestPointTo(v1, true);
 
+                double error = v1.VectorTo(projected).Length;
+                errorByIndex[i] = error;
             }
-            throw new NotImplementedException();
+
+            // Now go through the list of errors and remove nonadjacent points with less than the error tolerance
+            var thinnedPoints = new List<Point2D>();
+            int preserveMe = 0;
+            for (int i = 0; i < errorByIndex.Length - 1; i++)
+            {
+                if (i == preserveMe)
+                {
+                    thinnedPoints.Add(manifold[i]);
+                }
+                else
+                {
+                    if (errorByIndex[i] < tolerance)
+                        preserveMe = i + 1;
+                    else 
+                        thinnedPoints.Add(manifold[i]);
+                }
+            }
+            thinnedPoints.Add(manifold.Last());
+
+            return thinnedPoints;
         }
-        
+
+        /// <summary>
+        /// Reduce the complexity of a manifold of points represented as an IEnumerable of Point2D objects by
+        /// iteratively removing all nonadjacent points which would each result in an error of less than the
+        /// single step tolerance if removed.  Iterate until no further changes are made.
+        /// </summary>
+        /// <param name="points"></param>
+        /// <param name="singleStepTolerance"></param>
+        /// <returns></returns>
+        public static PolyLine2D ReduceComplexity(IEnumerable<Point2D> points, double singleStepTolerance)
+        {
+            var manifold = points.ToList();
+            var n = manifold.Count;
+
+            manifold = ReduceComplexitySingleStep(manifold, singleStepTolerance).ToList();
+            var n1 = manifold.Count;
+
+            while (n1 != n)
+            {
+                n = n1;
+                manifold = ReduceComplexitySingleStep(manifold, singleStepTolerance).ToList();
+                n1 = manifold.Count;
+            }
+
+            return new PolyLine2D(manifold);
+        }
+
+        /// <summary>
+        /// Returns the closest point on the polyline to the given point.
+        /// </summary>
+        /// <param name="p"></param>
+        /// <returns></returns>
+        public Point2D ClosestPointTo(Point2D p)
+        {
+            double minError = double.MaxValue;
+            Point2D closest = new Point2D();
+
+            for (int i = 0; i < this.Count - 1; i++)
+            {
+                var segment = new Line2D(this[i], this[i + 1]);
+                var projected = segment.ClosestPointTo(p, true);
+                double error = p.DistanceTo(projected);
+                if (error < minError)
+                {
+                    minError = error;
+                    closest = projected;
+                }
+            }
+            return closest;
+        }
 
         // IEnumerable<Point2D>
         public IEnumerator<Point2D> GetEnumerator()
