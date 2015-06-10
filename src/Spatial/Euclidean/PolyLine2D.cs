@@ -51,6 +51,38 @@ namespace MathNet.Spatial.Euclidean
             return length;
         }
 
+        public Point2D GetPointAtFraction(double fraction)
+        {
+            return this.GetPointAtLengthFromStart(fraction*this.Length);
+        }
+
+        public Point2D GetPointAtLengthFromStart(double lengthFromStart)
+        {
+            double length = this.Length;
+            if (lengthFromStart >= length)
+                return this.Last();
+            if (lengthFromStart <= 0)
+                return this.First();
+
+            double cumulativeLength = 0;
+            int i = 0;
+            while (true)
+            {
+                double nextLength = cumulativeLength + this[i].DistanceTo(this[i + 1]);
+                if (cumulativeLength <= lengthFromStart && nextLength > lengthFromStart)
+                {
+                    double leftover = lengthFromStart - cumulativeLength;
+                    Vector2D direction = this[i].VectorTo(this[i + 1]).Normalize();
+                    return this[i] + (direction * leftover);
+                }
+                else
+                {
+                    cumulativeLength = nextLength;
+                    i++;
+                }
+            }
+        }
+
         /// <summary>
         /// Reduce the complexity of a manifold of points represented as an IEnumerable of Point2D objects.
         /// This algorithm goes through each point in the manifold and computes the error that would be introduced

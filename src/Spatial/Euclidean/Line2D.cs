@@ -115,6 +115,19 @@ namespace MathNet.Spatial.Euclidean
             return this.StartPoint + alongVector;
         }
 
+        public Point2D IntersectWith(Line2D other)
+        {
+            // http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+            Point2D p = this.StartPoint;
+            Point2D q = other.StartPoint;
+            Vector2D r = this.StartPoint.VectorTo(this.EndPoint);
+            Vector2D s = other.StartPoint.VectorTo(other.EndPoint);
+
+            double t = (q - p).CrossProduct(s)/(r.CrossProduct(s));
+
+            return p + t*r;
+        }
+
         # region Operators 
 
         public static bool operator ==(Line2D left, Line2D right)

@@ -144,5 +144,16 @@ namespace MathNet.Spatial.UnitTests.Euclidean
 
             Assert.AreEqual("StartPoint: (0, 0), EndPoint: (1, 1)", check);
         }
+
+        [Test]
+        public void IntersectionWithLine()
+        {
+            var l1 = Line2D.Parse("1,4", "1,8");
+            var l2 = Line2D.Parse("0,6", "10,6");
+            Point2D expected = new Point2D(1, 6);
+            var computed = l1.IntersectWith(l2);
+            
+            Assert.AreEqual(expected, computed);
+        }
     }
 }
