@@ -1,5 +1,7 @@
 ﻿using System;
 using MathNet.Numerics;
+using MathNet.Numerics.LinearAlgebra.Double;
+using MathNet.Spatial.Units;
 
 namespace MathNet.Spatial.Euclidean
 {
@@ -26,6 +28,25 @@ namespace MathNet.Spatial.Euclidean
             _norm = ToNorm(real, imagX, imagY, imagZ);
             _abs = Math.Sqrt(_norm);
             _arg = Math.Acos(real/_abs);
+        }
+
+        /// <summary>
+        /// Given a Vector (x,y,z,w), transforms it into a Quaternion
+        /// </summary>
+        /// <param name="v">The vector to transform into a Quaternion</param>
+        /// <returns></returns>
+        public static Quaternion From4Vector(DenseVector v)
+        {
+            return new Quaternion(v[3],v[0],v[1],v[2]);
+        }
+
+        /// <summary>
+        /// Given a quaternion (x, y, z, w), returns the quaternion (0, 0, 0, 1)
+        /// </summary>
+        /// <returns>A Quaternion structure that represents the identity quaternion.</returns>
+        public static Quaternion Identity()
+        {
+            return 1.0;
         }
 
         /// <summary>
@@ -127,6 +148,30 @@ namespace MathNet.Spatial.Euclidean
         }
 
         /// <summary>
+        /// True if the norm of the quaternion is around 1
+        /// </summary>
+        public bool IsRotation
+        {
+            get { return _norm.AlmostEqual(1.0, Precision.DoublePrecision); }
+        }
+
+        /// <summary>
+        /// The quaternion expresses a relationship between two coordinate frames, A and B say. This relationship, if
+        /// expressed using Euler angles, is as follows:
+        /// 1) Rotate frame A about its z axis by angle gamma;
+        /// 2) Rotate the resulting frame about its (new) y axis by angle beta;
+        /// 3) Rotate the resulting frame about its (new) x axis by angle alpha, to arrive at frame B.
+        /// </summary>
+        /// <returns></returns>
+        public EulerAngles ToEulerAngles()
+        {
+            return new EulerAngles(
+                Angle.FromRadians(Math.Atan2(2*(_w*_x + _y*_z), ((_w*_w) + (_z*_z) - (_x*_x) - (_y*_y)))),
+                Angle.FromRadians(Math.Asin(2*(_w*_y - _x*_z))),
+                Angle.FromRadians(Math.Atan2(2*(_w*_z + _x*_y), ((_w*_w) + (_x*_x) - (_y*_y) - (_z*_z)))));
+        }
+
+        /// <summary>
         /// Returns a new Quaternion q with the Scalar part only.
         /// If you need a Double, use the Real-Field instead.
         /// </summary>
@@ -158,6 +203,31 @@ namespace MathNet.Spatial.Euclidean
         public Quaternion Sign()
         {
             return ToUnitQuaternion(_w, _x, _y, _z);
+        }
+
+        /// <summary>
+        /// Roatates the provided rotation quaternion with this quaternion
+        /// </summary>
+        /// <param name="rotation">The rotation quaternion to rotate</param>
+        /// <returns></returns>
+        public Quaternion RotateRotationQuaternion(Quaternion rotation)
+        {
+            if (!rotation.IsRotation) throw new ArgumentException("The quaternion provided is not a rotation", "rotation");
+
+            return rotation*this;
+        }
+
+        /// <summary>
+        /// Roatates the provided unit quaternion with this quaternion
+        /// </summary>
+        /// <param name="unitQuaternion">The unit quaternion to rotate</param>
+        /// <returns></returns>
+        public Quaternion RotateUnitQuaternion(Quaternion unitQuaternion)
+        {
+            if (!IsRotation) throw new InvalidOperationException("You cannot rotate with this quaternion as it is not a rotation");
+            if (!unitQuaternion.IsUnitQuaternion) throw new ArgumentException("The quaternion provided is not a Unit Quaternion");
+            
+            return (this*unitQuaternion)*Conjugate();
         }
 
         /////// <summary>
