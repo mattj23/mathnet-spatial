@@ -121,6 +121,41 @@ namespace MathNet.Spatial.Euclidean
             return closest;
         }
 
+        /// <summary>
+        /// Scans through the polyline point by point and returns a new polyline by removing any adjacent points
+        /// which are equal within the specified tolerance.
+        /// </summary>
+        /// <param name="tol"></param>
+        /// <returns></returns>
+        public PolyLine3D RemoveAdjacentDuplicates(double tol = 1e-6)
+        {
+            var newPoints = new List<Point3D> {this[0]};
+            for (int i = 1; i < this._points.Count; i++)
+            {
+                if (!newPoints.Last().Equals(this._points[i], tol))
+                {
+                    newPoints.Add(this._points[i]);
+                }
+            }
+            return new PolyLine3D(newPoints);
+        }
+
+        /// <summary>
+        /// Convert the PolyLine3D to an IEnumerable of Line3Ds representing the segments between the 
+        /// points in the polyline. Remember that any zero-length line will raise an ArgumentException, so
+        /// it is best to remove any duplicate adjacent points before performing this conversion.
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<Line3D> ToLine3Ds()
+        {
+            var lines = new List<Line3D>();
+            for (int i = 0; i < this._points.Count - 1; i++)
+            {
+                lines.Add(new Line3D(this._points[i], this._points[i + 1]));
+            }
+            return lines;
+        }
+
         public bool IsPlanarWithinTol(double tolerance)
         {
             throw new NotImplementedException();
