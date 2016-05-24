@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using MathNet.Spatial.Units;
 
 namespace MathNet.Spatial.Euclidean
 {
@@ -119,6 +120,43 @@ namespace MathNet.Spatial.Euclidean
                 }
             }
             return closest;
+        }
+
+        /// <summary>
+        /// Rotate the entire polyline about the origin and the specified direction of rotation by
+        /// the given angle.
+        /// </summary>
+        /// <param name="aboutVector"></param>
+        /// <param name="angle"></param>
+        /// <returns></returns>
+        public PolyLine3D Rotate(UnitVector3D aboutVector, Angle angle)
+        {
+            var newPoints = this.Select(x => x.Rotate(aboutVector, angle));
+            return new PolyLine3D(newPoints);
+        }
+
+        /// <summary>
+        /// Rotate the entire polyline about the origin and the specified direction of rotation by
+        /// the given angle.
+        /// </summary>
+        /// <param name="aboutVector"></param>
+        /// <param name="angle"></param>
+        /// <returns></returns>
+        public PolyLine3D Rotate(Vector3D aboutVector, Angle angle)
+        {
+            return this.Rotate(aboutVector.Normalize(), angle);
+        }
+
+        /// <summary>
+        /// Rotate the entire polyline about the specified axis by the given angle.
+        /// </summary>
+        /// <param name="rotationAxis"></param>
+        /// <param name="angle"></param>
+        /// <returns></returns>
+        public PolyLine3D Rotate(Ray3D rotationAxis, Angle angle)
+        {
+            var newPoints = this.Select(x => x.Rotate(rotationAxis, angle));
+            return new PolyLine3D(newPoints);
         }
 
         /// <summary>
