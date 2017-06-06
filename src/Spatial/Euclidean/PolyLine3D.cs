@@ -216,6 +216,24 @@ namespace MathNet.Spatial.Euclidean
         }
 
         /// <summary>
+        /// Resample the curve and return a new polyline with the given number of points
+        /// </summary>
+        /// <param name="numberOfPoints"></param>
+        /// <returns></returns>
+        public PolyLine3D Resample(int numberOfPoints)
+        {
+            var newPoints = new List<Point3D>();
+            double fraction = 1.0 / numberOfPoints;
+            for (int i = 0; i < numberOfPoints; i++)
+            {
+                newPoints.Add(this.GetPointAtFractionAlongCurve(i * fraction));
+            }
+            newPoints.Add(this.Last());
+
+            return new PolyLine3D(newPoints);
+        }
+
+        /// <summary>
         /// Convert the PolyLine3D to an IEnumerable of Line3Ds representing the segments between the 
         /// points in the polyline. Remember that any zero-length line will raise an ArgumentException, so
         /// it is best to remove any duplicate adjacent points before performing this conversion.
