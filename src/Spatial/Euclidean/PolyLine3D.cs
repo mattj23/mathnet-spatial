@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using MathNet.Spatial.Units;
 
@@ -99,27 +100,35 @@ namespace MathNet.Spatial.Euclidean
         }
 
         /// <summary>
+        /// Splits a PolyLine3D at the projection of the splitpoint onto the polyline and returns the 
+        /// two resulting PolyLine3Ds in a tuple
+        /// </summary>
+        /// <param name="splitPoint">the point to project onto the polyline and perform the split at</param>
+        /// <returns></returns>
+        public Tuple<PolyLine3D, PolyLine3D> SplitAtPoint(Point3D splitPoint)
+        {
+            var indexAndPoint = this.ClosestPointAndPreceedingIndex(splitPoint);
+
+            var part1 = new List<Point3D>();
+            for (int i = 0; i <= indexAndPoint.Item1; i++)
+                part1.Add(this[i]);
+            part1.Add(indexAndPoint.Item2);
+
+            var part2 = new List<Point3D>{indexAndPoint.Item2};
+            for (int i = indexAndPoint.Item1 + 1; i < this.Count; i++)
+                part2.Add(this[i]);
+
+            return Tuple.Create(new PolyLine3D(part1), new PolyLine3D(part2));
+        }
+
+        /// <summary>
         /// Returns the closest point on the polyline to the given point.
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
         public Point3D ClosestPointTo(Point3D p)
         {
-            var minError = double.MaxValue;
-            var closest = new Point3D();
-
-            for (int i = 0; i < this.Count - 1; i++)
-            {
-                var segment = new Line3D(this[i], this[i + 1]);
-                var projected = segment.ClosestPointTo(p, true);
-                double error = p.DistanceTo(projected);
-                if (error < minError)
-                {
-                    minError = error;
-                    closest = projected;
-                }
-            }
-            return closest;
+            return this.ClosestPointAndPreceedingIndex(p).Item2;
         }
 
         /// <summary>
@@ -145,6 +154,16 @@ namespace MathNet.Spatial.Euclidean
         public PolyLine3D Rotate(Vector3D aboutVector, Angle angle)
         {
             return this.Rotate(aboutVector.Normalize(), angle);
+        }
+
+        /// <summary>
+        /// Translate the entire polyline by a given vector
+        /// </summary>
+        /// <param name="shift"></param>
+        /// <returns></returns>
+        public PolyLine3D Translate(Vector3D shift)
+        {
+            return new PolyLine3D(this.Select(x => x + shift));
         }
 
         /// <summary>
@@ -179,6 +198,24 @@ namespace MathNet.Spatial.Euclidean
         }
 
         /// <summary>
+        /// Find all of the intersections that this polyline has with a given plane
+        /// </summary>
+        /// <param name="plane"></param>
+        /// <param name="tolerance"></param>
+        /// <returns></returns>
+        public IEnumerable<Point3D> IntersectionsWith(Plane plane, double tolerance = Double.Epsilon)
+        {
+            var results = new List<Point3D>();
+            foreach (var line3D in this.ToLine3Ds())
+            {
+                var result = line3D.IntersectionWith(plane, tolerance);
+                if (result.HasValue)
+                    results.Add(result.Value);
+            }
+            return results;
+        }
+
+        /// <summary>
         /// Convert the PolyLine3D to an IEnumerable of Line3Ds representing the segments between the 
         /// points in the polyline. Remember that any zero-length line will raise an ArgumentException, so
         /// it is best to remove any duplicate adjacent points before performing this conversion.
@@ -208,6 +245,36 @@ namespace MathNet.Spatial.Euclidean
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        /// <summary>
+        /// Return the index of the point which preceeds the test point's projection onto the polyline.
+        /// </summary>
+        /// <param name="p"></param>
+        protected int PreceedingPointIndex(Point3D p)
+        {
+            return this.ClosestPointAndPreceedingIndex(p).Item1;
+        }
+
+        protected Tuple<int, Point3D> ClosestPointAndPreceedingIndex(Point3D p)
+        {
+            var minError = double.MaxValue;
+            var closest = new Point3D();
+            int preceedingIndex = 0;
+
+            for (int i = 0; i < this.Count - 1; i++)
+            {
+                var segment = new Line3D(this[i], this[i + 1]);
+                var projected = segment.ClosestPointTo(p, true);
+                double error = p.DistanceTo(projected);
+                if (error < minError)
+                {
+                    minError = error;
+                    closest = projected;
+                    preceedingIndex = i;
+                }
+            }
+            return Tuple.Create(preceedingIndex, closest);
         }
     }
 }
