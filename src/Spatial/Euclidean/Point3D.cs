@@ -267,20 +267,53 @@ namespace MathNet.Spatial.Euclidean
             return plane.MirrorAbout(this);
         }
 
+        /// <summary>
+        /// Projects the point onto a plane and returns the projected point.
+        /// </summary>
+        /// <param name="plane"></param>
+        /// <returns></returns>
         public Point3D ProjectOn(Plane plane)
         {
             return plane.Project(this);
         }
 
+        /// <summary>
+        /// Rotates the point about the origin using the specified axis of rotation and
+        /// the specified angular amount.
+        /// </summary>
+        /// <param name="aboutVector"></param>
+        /// <param name="angle"></param>
+        /// <returns></returns>
         public Point3D Rotate(Vector3D aboutVector, Angle angle)
         {
             return Rotate(aboutVector.Normalize(), angle);
         }
 
+        /// <summary>
+        /// Rotates the point about the origin using the specified axis of rotation
+        /// and the specified angular amount.
+        /// </summary>
+        /// <param name="aboutVector">direction to rotate about</param>
+        /// <param name="angle"></param>
+        /// <returns></returns>
         public Point3D Rotate(UnitVector3D aboutVector, Angle angle)
         {
             var cs = CoordinateSystem.Rotation(angle, aboutVector);
             return cs.Transform(this);
+        }
+
+        /// <summary>
+        /// Rotates the point about a ray in space, where the origin of rotation
+        /// is the ray's through point and the axis of rotation is the ray's direction.
+        /// </summary>
+        /// <param name="aboutRay">The ray to rotate the point around</param>
+        /// <param name="angle">The angular amount to rotate by</param>
+        /// <returns>a new point in the rotated position</returns>
+        public Point3D Rotate(Ray3D aboutRay, Angle angle)
+        {
+            var shifted = aboutRay.ThroughPoint.VectorTo(this).ToPoint3D();
+            var rotated = shifted.Rotate(aboutRay.Direction, angle);
+            return aboutRay.ThroughPoint + rotated.ToVector3D();
         }
 
         [Pure]

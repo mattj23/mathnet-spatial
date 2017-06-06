@@ -4,6 +4,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml;
 using System.Xml.Serialization;
 using MathNet.Spatial.Euclidean;
+using MathNet.Spatial.Units;
 using NUnit.Framework;
 
 namespace MathNet.Spatial.UnitTests.Euclidean
@@ -198,6 +199,49 @@ namespace MathNet.Spatial.UnitTests.Euclidean
             AssertGeometry.AreEqual(p, Point3D.Parse(actual), tolerance);
         }
 
+        [TestCase("1,0,0", "0,0,1", 90, "0,1,0")]
+        [TestCase("1,0,0", "0,0,1", -90, "0,-1,0")]
+        [TestCase("8.4910522,8.4844848,0.8012991", "4.1793042,4.0365428,8.9997942", -48.4550, "11.6840096,1.4335021,2.4810323")] // Generated in GOM Atos Professional v8
+        [TestCase("5.7030502,5.8482169,2.2019595", "7.3457039,7.1033271,3.8819098", 339.5547, "5.9256585,5.6337029,2.1732491")] // Generated in GOM Atos Professional v8
+        [TestCase("5.4854636,3.2175858,0.9740230", "1.2439597,1.1798032,5.5321128", 290.4793, "4.9984156,-3.2206924,2.4565975")] // Generated in GOM Atos Professional v8
+        [TestCase("8.3882955,9.5841038,1.1293478", "3.5127812,0.3990365,4.7889790", 90.1552, "-3.8106602,6.4931200,10.3350005")] // Generated in GOM Atos Professional v8
+        [TestCase("3.5778338,4.0321479,2.3887874", "3.6138080,4.3396801,1.7768308", -85.7481, "3.0357407,4.6569180,1.9654031")] // Generated in GOM Atos Professional v8
+        [TestCase("2.8800706,8.0261508,1.4109566", "7.3891669,1.7581973,1.4806689", -184.9301, "6.2590496,-5.8679834,1.0467905")] // Generated in GOM Atos Professional v8
+        public void RotationAboutOrigin(string p, string v, double a, string e)
+        {
+            var point = Point3D.Parse(p);
+            var direction = Vector3D.Parse(v);
+            var angle = Angle.FromDegrees(a);
+            var expected = Point3D.Parse(e);
+
+            var rotated = point.Rotate(direction, angle);
+            AssertGeometry.AreEqual(expected, rotated, 1e-4);
+        }
+
+        [TestCase("1,0,0", "0,0,0", "0,0,1", 90, "0,1,0")]
+        [TestCase("1,0,0", "2,0,0", "0,0,1", 90, "2,-1,0")]
+        [TestCase("2.1898456,7.6772848,9.1588807", "0.7385921,9.8344071,2.7694078", "4.9828047,0.7545652,7.4076037", -200.3701, "6.5525553,12.0014456,5.7837822")] // Generated in GOM Atos Professional v8
+        [TestCase("3.4921017,3.6809637,4.8383440", "6.3965512,1.2546020,5.8593084", "2.7668653,2.8547222,4.0588667", 51.2336, "2.6580651,1.3699948,7.0322671")] // Generated in GOM Atos Professional v8
+        [TestCase("4.4350990,5.9221342,8.4652378", "8.6180110,7.1658996,3.7451098", "3.7115823,2.5381497,1.9027558", 53.6124, "7.8876918,1.8070680,7.2197135")] // Generated in GOM Atos Professional v8
+        [TestCase("9.8284496,2.1588425,7.6273405", "6.3722199,7.6775151,4.4810891", "1.1380717,7.4185156,9.9227807", 53.0672, "13.4498394,6.2241181,4.1726927")] // Generated in GOM Atos Professional v8
+        [TestCase("0.2346871,5.2757395,7.6410528", "4.0022896,2.6837793,4.1865969", "3.0557481,6.7346322,4.8437257", -267.1556, "6.3297790,1.3517789,9.2516655")] // Generated in GOM Atos Professional v8
+        [TestCase("3.5875094,5.3870656,9.6765620", "3.5224911,3.5823199,3.3315112", "0.0895516,1.7439455,1.9349648", 136.2324, "5.8357615,8.9833905,6.3312145")] // Generated in GOM Atos Professional v8
+        [TestCase("3.3263096,0.3594738,5.8479096", "9.6236571,2.7853836,3.8375412", "3.8332346,0.4346173,6.2294978", -120.0622, "9.5322881,9.3905864,1.3990678")] // Generated in GOM Atos Professional v8
+        public void RotationAboutRay(string p, string v0, string vn, double a, string e)
+        {
+            var point = Point3D.Parse(p);
+            var throughPoint = Point3D.Parse(v0);
+            var direction = Vector3D.Parse(vn);
+            var ray = new Ray3D(throughPoint, direction);
+            var angle = Angle.FromDegrees(a);
+            var expected = Point3D.Parse(e);
+
+            var rotated = point.Rotate(ray, angle);
+            AssertGeometry.AreEqual(expected, rotated, 1e-4);
+        }
+
+
+
         [Test]
         public void XmlRoundtrip()
         {
@@ -219,7 +263,7 @@ namespace MathNet.Spatial.UnitTests.Euclidean
                 AssertGeometry.AreEqual(p, actual);
             }
         }
-
+        
         [Test]
         public void BinaryRountrip()
         {
